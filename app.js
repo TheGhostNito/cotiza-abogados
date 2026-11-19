@@ -46,23 +46,29 @@ const services = [
 const lawyers = [
   {
     title: 'Camila Rojas',
-    description: 'Derecho de familia y derecho civil',
+    specialty: 'Derecho de familia y derecho civil',
+    experience: 12,
+    description: 'Acompaña a familias en procesos de separación, acuerdos de cuidado personal y pensiones de alimentos. También asesora en herencias y acuerdos civiles.',
+    portrait: 'assets/abogados/camila-rojas.webp',
     keywords: 'divorcio alimentos custodia herencias deudas',
-    icon: 'user',
     modes: ['online', 'presencial'],
   },
   {
     title: 'Nicolás Herrera',
-    description: 'Derecho laboral y derecho comercial',
+    specialty: 'Derecho laboral y derecho comercial',
+    experience: 8,
+    description: 'Asesora a trabajadores en la revisión de finiquitos y consultas por despido. También apoya a pequeñas empresas en la constitución de sociedades y la revisión de contratos.',
+    portrait: 'assets/abogados/nicolas-herrera.webp',
     keywords: 'despido finiquito trabajo empresa sociedades contratos',
-    icon: 'user',
     modes: ['online'],
   },
   {
     title: 'Valentina Soto',
-    description: 'Derecho inmobiliario y derecho migratorio',
+    specialty: 'Derecho inmobiliario y derecho migratorio',
+    experience: 15,
+    description: 'Revisa contratos de arriendo y antecedentes para la compraventa de propiedades. También orienta a personas extranjeras en trámites de residencia y nacionalidad.',
+    portrait: 'assets/abogados/valentina-soto.webp',
     keywords: 'arriendo compraventa propiedades visas residencia extranjería',
-    icon: 'user',
     modes: ['presencial'],
   },
 ];
@@ -106,7 +112,7 @@ function normalizeSearch(text) {
 function findEntries(view) {
   const terms = normalizeSearch(activeQuery).split(/\s+/).filter(Boolean);
   return directories[view].entries.filter((entry) => {
-    const searchable = normalizeSearch(`${entry.title} ${entry.description} ${entry.keywords}`);
+    const searchable = normalizeSearch([entry.title, entry.specialty, entry.description, entry.keywords].join(' '));
     return (!activeMode || entry.modes.includes(activeMode)) && terms.every((term) => searchable.includes(term));
   });
 }
@@ -122,7 +128,7 @@ function createIcon(name) {
   return icon;
 }
 
-function createCard(entry, isLawyer) {
+function createServiceCard(entry) {
   const card = document.createElement('article');
   card.className = 'service-card';
 
@@ -137,21 +143,33 @@ function createCard(entry, isLawyer) {
   description.textContent = entry.description;
   card.append(icon, title, description);
 
-  if (isLawyer) {
-    const tag = document.createElement('p');
-    tag.className = 'card-tag';
-    tag.textContent = `Perfil de ejemplo · ${entry.modes.map((mode) => modeNames[mode]).join(' y ')}`;
-    card.append(tag);
-  }
-
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'card-action text-button';
   button.setAttribute('aria-label', `Solicitar cotización: ${entry.title}`);
   button.append('Solicitar cotización', createIcon('up-right'));
-  button.addEventListener('click', () => openQuote(entry, isLawyer));
+  button.addEventListener('click', () => openQuote(entry));
   card.append(button);
 
+  return card;
+}
+
+const lawyerCardTemplate = document.querySelector('#lawyer-card-template');
+
+function formatModes(modes) {
+  return modes.length === 2 ? 'En línea y presencial' : modeNames[modes[0]];
+}
+
+function createLawyerCard(lawyer) {
+  const card = lawyerCardTemplate.content.firstElementChild.cloneNode(true);
+  card.querySelector('img').src = lawyer.portrait;
+  card.querySelector('h3').textContent = lawyer.title;
+  card.querySelector('.lawyer-specialty').textContent = lawyer.specialty;
+  card.querySelector('.lawyer-card-meta').textContent = formatModes(lawyer.modes);
+
+  const button = card.querySelector('button');
+  button.setAttribute('aria-label', `Ver perfil de ${lawyer.title}`);
+  button.addEventListener('click', () => openLawyerProfile(lawyer));
   return card;
 }
 
@@ -174,7 +192,7 @@ function renderDirectory() {
   const modeSummary = activeMode ? ` · ${modeNames[activeMode]}` : '';
   searchStatus.textContent = isFiltered ? `${resultCount}${querySummary}${modeSummary}` : '';
 
-  directoryGrid.replaceChildren(...entries.map((entry) => createCard(entry, isLawyer)));
+  directoryGrid.replaceChildren(...entries.map(isLawyer ? createLawyerCard : createServiceCard));
   if (entries.length === 0) {
     const empty = document.createElement('p');
     empty.className = 'empty-state';
@@ -338,19 +356,42 @@ loginForm.addEventListener('submit', (event) => finishAccount(event, 'Prueba com
 registerForm.addEventListener('submit', (event) => finishAccount(event, 'Prueba completada. No se creó una cuenta ni se guardaron los datos.'));
 accountDialog.addEventListener('close', resetAccountForms);
 
+const lawyerDialog = document.querySelector('#lawyer-dialog');
+const lawyerTitle = document.querySelector('#lawyer-title');
+const lawyerPortrait = document.querySelector('#lawyer-portrait');
+const lawyerQuote = document.querySelector('#lawyer-quote');
+
+function openLawyerProfile(lawyer) {
+  lawyerTitle.textContent = lawyer.title;
+  lawyerPortrait.alt = `Retrato ficticio de ${lawyer.title}`;
+  lawyerPortrait.src = lawyer.portrait;
+  lawyerDialog.querySelector('#lawyer-specialty').textContent = lawyer.specialty;
+  lawyerDialog.querySelector('#lawyer-experience').textContent = `${lawyer.experience} años de experiencia`;
+  lawyerDialog.querySelector('#lawyer-modes').textContent = formatModes(lawyer.modes);
+  lawyerDialog.querySelector('#lawyer-bio').textContent = lawyer.description;
+  lawyerQuote.onclick = () => openQuote(lawyer, true);
+
+  lawyerDialog.showModal();
+  lawyerDialog.scrollTop = 0;
+  lawyerTitle.focus({ preventScroll: true });
+}
+
 const quoteDialog = document.querySelector('#quote-dialog');
 const quoteForm = document.querySelector('#quote-form');
 const quoteMode = document.querySelector('#quote-mode');
-const quoteContext = document.querySelector('#quote-context');
+const quoteRecipientLabel = document.querySelector('#quote-recipient-label');
+const quoteRecipient = document.querySelector('#quote-recipient');
 const quoteResult = document.querySelector('#quote-result');
 
-function openQuote(entry, isLawyer) {
+function openQuote(entry, fromLawyerProfile = false) {
   quoteForm.reset();
-  quoteContext.textContent = isLawyer ? `Perfil de ejemplo de ${entry.title} · ${entry.description}` : entry.title;
+  quoteRecipientLabel.textContent = fromLawyerProfile ? 'Solicitud para' : 'Especialidad';
+  quoteRecipient.textContent = entry.title;
   [...quoteMode.options].forEach((option) => {
     option.disabled = Boolean(option.value) && !entry.modes.includes(option.value);
   });
   quoteMode.value = entry.modes.length === 1 ? entry.modes[0] : activeMode;
+  quoteResult.querySelector('button').textContent = fromLawyerProfile ? 'Volver al perfil' : 'Volver a explorar';
   quoteForm.hidden = false;
   quoteResult.hidden = true;
   quoteDialog.showModal();
