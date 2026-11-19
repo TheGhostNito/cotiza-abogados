@@ -105,7 +105,7 @@
         <p id="search-status" role="status"></p>
         <button class="text-button clear-search" id="clear-search" type="button">Limpiar búsqueda</button>
       </div>
-      <p class="directory-note" id="directory-note" hidden>Estos perfiles son ejemplos del funcionamiento de la plataforma.</p>
+      <p class="directory-note" id="directory-note" hidden>Los nombres, las fotografías y los datos de estos perfiles son ficticios.</p>
       <div class="directory-grid" id="directory-grid"></div>
       <noscript><p>Activa JavaScript para explorar servicios y probar los formularios.</p></noscript>
     </section>
@@ -208,11 +208,41 @@
     </div>
   </dialog>
 
-  <dialog class="dialog" id="quote-dialog" aria-labelledby="quote-title">
+  <template id="lawyer-card-template">
+    <article class="lawyer-card">
+      <img class="lawyer-card-portrait" alt="" width="640" height="800" loading="lazy" decoding="async">
+      <div class="lawyer-card-body">
+        <h3></h3>
+        <p class="lawyer-specialty"></p>
+        <p class="lawyer-card-meta"></p>
+        <button class="card-action text-button" type="button" aria-haspopup="dialog">Ver perfil <svg class="icon" aria-hidden="true"><use href="#icon-up-right"/></svg></button>
+      </div>
+    </article>
+  </template>
+
+  <dialog class="dialog lawyer-dialog" id="lawyer-dialog" aria-labelledby="lawyer-title">
+    <div class="dialog-inner lawyer-profile">
+      <button class="icon-button dialog-close" type="button" data-close aria-label="Cerrar perfil"><svg class="icon" aria-hidden="true"><use href="#icon-close"/></svg></button>
+      <img class="lawyer-profile-portrait" id="lawyer-portrait" alt="" width="640" height="800">
+      <div class="lawyer-profile-content">
+        <p class="lawyer-example">Perfil ficticio</p>
+        <h2 id="lawyer-title" tabindex="-1"></h2>
+        <p class="lawyer-specialty" id="lawyer-specialty"></p>
+        <ul class="lawyer-profile-meta" aria-label="Experiencia y modalidad">
+          <li><svg class="icon" aria-hidden="true"><use href="#icon-briefcase"/></svg><span id="lawyer-experience"></span></li>
+          <li><svg class="icon" aria-hidden="true"><use href="#icon-pin"/></svg><span id="lawyer-modes"></span></li>
+        </ul>
+        <p class="lawyer-bio" id="lawyer-bio"></p>
+        <button class="button" id="lawyer-quote" type="button" aria-haspopup="dialog">Solicitar cotización <svg class="icon" aria-hidden="true"><use href="#icon-arrow"/></svg></button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog class="dialog" id="quote-dialog" aria-labelledby="quote-title" aria-describedby="quote-context">
     <div class="dialog-inner">
       <button class="icon-button dialog-close" type="button" data-close aria-label="Cerrar"><svg class="icon" aria-hidden="true"><use href="#icon-close"/></svg></button>
       <h2 id="quote-title">Solicitar cotización</h2>
-      <p class="dialog-description" id="quote-context"></p>
+      <p class="quote-context" id="quote-context"><span id="quote-recipient-label"></span><strong id="quote-recipient"></strong></p>
       <form class="dialog-form" id="quote-form" method="dialog">
         <label>Correo electrónico <input type="email" autocomplete="email" required maxlength="254"></label>
         <label>Modalidad

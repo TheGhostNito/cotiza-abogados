@@ -14,4 +14,6 @@ python -m http.server 8000 --bind 127.0.0.1
 
 Abre `http://127.0.0.1:8000` para revisar la página.
 
+Para probar los perfiles, entra en **Explorar → Abogados** o busca `Nicolas Herrera` desde la portada. Abre **Ver perfil** y luego **Solicitar cotización**. El formulario muestra el nombre del abogado y solo permite elegir sus modalidades de atención. Al terminar la prueba puedes volver a la ficha y seguir explorando con los filtros aplicados.
+
 Los formularios de cotización, contacto, inicio de sesión y registro son demostraciones. Usa datos ficticios. La foto opcional se previsualiza en memoria y se descarta al cerrar el formulario. El sitio no guarda contraseñas ni envía los datos.
