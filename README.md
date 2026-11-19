@@ -2,6 +2,10 @@
 
 **Vía Legal** es un prototipo público para explorar servicios legales, consultar perfiles de ejemplo y probar una solicitud de cotización.
 
+## Documentación
+
+Consulta la [documentación del proyecto](docs/00%20-%20Inicio.md) para revisar sus tres fases, funcionalidades, pruebas y flujo de trabajo con Git.
+
 ## Vista previa
 
 Abre `index.html` en un navegador. El prototipo usa HTML, CSS y JavaScript sin instalación ni conexión a servicios externos.
