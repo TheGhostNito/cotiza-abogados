@@ -95,11 +95,16 @@ const searchForm = document.querySelector('#search-form');
 const searchInput = document.querySelector('#search-query');
 const searchMode = document.querySelector('#search-mode');
 const directory = document.querySelector('#explorar');
+const directoryTitle = document.querySelector('#directory-title');
 const directoryGrid = document.querySelector('#directory-grid');
 const directoryButtons = document.querySelectorAll('[data-directory]');
 const filterSummary = document.querySelector('#filter-summary');
 const searchStatus = document.querySelector('#search-status');
 const clearSearch = document.querySelector('#clear-search');
+const searchEmpty = document.querySelector('#search-empty');
+const searchEmptyTitle = document.querySelector('#search-empty-title');
+const searchEmptyHelp = document.querySelector('#search-empty-help');
+const recoverSearch = document.querySelector('#recover-search');
 
 let activeDirectory = 'services';
 let activeQuery = '';
@@ -109,11 +114,11 @@ function normalizeSearch(text) {
   return text.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLocaleLowerCase('es-CL');
 }
 
-function findEntries(view) {
+function findEntries(view, mode = activeMode) {
   const terms = normalizeSearch(activeQuery).split(/\s+/).filter(Boolean);
   return directories[view].entries.filter((entry) => {
     const searchable = normalizeSearch([entry.title, entry.specialty, entry.description, entry.keywords].join(' '));
-    return (!activeMode || entry.modes.includes(activeMode)) && terms.every((term) => searchable.includes(term));
+    return (!mode || entry.modes.includes(mode)) && terms.every((term) => searchable.includes(term));
   });
 }
 
@@ -173,32 +178,54 @@ function createLawyerCard(lawyer) {
   return card;
 }
 
+function renderEmptySearch(isLawyer) {
+  const hasUnfilteredMatches = activeMode && findEntries(activeDirectory, '').length > 0;
+  searchEmptyTitle.textContent = isLawyer ? 'No encontramos perfiles' : 'No encontramos especialidades';
+
+  if (hasUnfilteredMatches) {
+    searchEmptyHelp.textContent = 'Hay coincidencias en otra modalidad. Quita el filtro para verlas sin cambiar el término de búsqueda.';
+    recoverSearch.textContent = 'Quitar filtro de modalidad';
+    recoverSearch.onclick = removeSearchMode;
+    return;
+  }
+
+  searchEmptyHelp.textContent = isLawyer
+    ? 'Prueba con un nombre o un tema más general, como «Camila Rojas» o «familia».'
+    : 'Prueba con una palabra más general, como «familia», «despido» o «arriendo».';
+  recoverSearch.textContent = isLawyer ? 'Ver todos los perfiles' : 'Ver todas las especialidades';
+  recoverSearch.onclick = resetSearch;
+}
+
 function renderDirectory() {
   const view = directories[activeDirectory];
   const isLawyer = activeDirectory === 'lawyers';
   const entries = findEntries(activeDirectory);
+  const hasResults = entries.length > 0;
   const isFiltered = Boolean(activeQuery || activeMode);
 
-  directory.querySelector('#directory-title').textContent = view.title;
+  directoryTitle.textContent = view.title;
   directory.querySelector('.directory-head p').textContent = view.description;
-  directory.querySelector('#directory-note').hidden = !isLawyer || entries.length === 0;
+  directory.querySelector('#directory-note').hidden = !isLawyer || !hasResults;
   directoryButtons.forEach((button) => {
     button.setAttribute('aria-pressed', String(button.dataset.directory === activeDirectory));
   });
 
   filterSummary.hidden = !isFiltered;
+  clearSearch.hidden = !hasResults;
   const resultCount = `${entries.length} ${entries.length === 1 ? view.singular : view.plural}`;
   const querySummary = activeQuery ? ` para «${activeQuery}»` : '';
   const modeSummary = activeMode ? ` · ${modeNames[activeMode]}` : '';
   searchStatus.textContent = isFiltered ? `${resultCount}${querySummary}${modeSummary}` : '';
 
   directoryGrid.replaceChildren(...entries.map(isLawyer ? createLawyerCard : createServiceCard));
-  if (entries.length === 0) {
-    const empty = document.createElement('p');
-    empty.className = 'empty-state';
-    empty.textContent = 'Prueba con otro término, cambia la modalidad o revisa la otra vista del directorio.';
-    directoryGrid.append(empty);
-  }
+  searchEmpty.hidden = hasResults;
+  if (!hasResults) renderEmptySearch(isLawyer);
+}
+
+function focusSearchResults() {
+  const target = searchEmpty.hidden ? directoryTitle : searchEmptyTitle;
+  target.focus({ preventScroll: true });
+  directory.scrollIntoView();
 }
 
 searchForm.addEventListener('submit', (event) => {
@@ -206,14 +233,15 @@ searchForm.addEventListener('submit', (event) => {
   activeQuery = searchInput.value.trim();
   activeMode = searchMode.value;
 
-  const otherView = activeDirectory === 'services' ? 'lawyers' : 'services';
-  if (findEntries(activeDirectory).length === 0 && findEntries(otherView).length > 0) {
-    activeDirectory = otherView;
+  if (findEntries(activeDirectory).length === 0) {
+    const otherView = activeDirectory === 'services' ? 'lawyers' : 'services';
+    const otherHasResults = findEntries(otherView).length > 0;
+    const otherHasResultsWithoutMode = activeMode && findEntries(activeDirectory, '').length === 0 && findEntries(otherView, '').length > 0;
+    if (otherHasResults || otherHasResultsWithoutMode) activeDirectory = otherView;
   }
 
   renderDirectory();
-  directory.focus({ preventScroll: true });
-  directory.scrollIntoView();
+  focusSearchResults();
 });
 
 directoryButtons.forEach((button) => {
@@ -223,12 +251,26 @@ directoryButtons.forEach((button) => {
   });
 });
 
-clearSearch.addEventListener('click', () => {
+function resetSearch() {
   searchForm.reset();
   activeQuery = '';
   activeMode = '';
   renderDirectory();
-  document.querySelector('[data-directory][aria-pressed="true"]').focus();
+  focusSearchResults();
+}
+
+function removeSearchMode() {
+  searchInput.value = activeQuery;
+  searchMode.value = '';
+  activeMode = '';
+  renderDirectory();
+  focusSearchResults();
+}
+
+clearSearch.addEventListener('click', resetSearch);
+document.querySelector('#edit-search').addEventListener('click', () => {
+  searchInput.focus({ preventScroll: true });
+  searchForm.scrollIntoView({ block: 'center' });
 });
 
 const menuButton = document.querySelector('.menu-toggle');
@@ -244,11 +286,14 @@ headerPanel.querySelectorAll('.site-nav a').forEach((link) => {
   link.addEventListener('click', () => setMenu(false));
 });
 
-document.addEventListener('click', (event) => {
-  if (!event.target.closest('.header-inner') && !event.target.closest('dialog')) {
+function dismissMenuOutside(event) {
+  if (menuButton.getAttribute('aria-expanded') === 'true' && !event.target.closest('.header-inner, dialog')) {
     setMenu(false);
   }
-});
+}
+
+document.addEventListener('click', dismissMenuOutside);
+document.addEventListener('focusin', dismissMenuOutside);
 
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape' && menuButton.getAttribute('aria-expanded') === 'true' && !document.querySelector('dialog[open]')) {
@@ -304,6 +349,7 @@ function openAccount(mode) {
   accountSwitch.dataset.account = isRegister ? 'login' : 'register';
 
   if (!accountDialog.open) accountDialog.showModal();
+  accountDialog.scrollTop = 0;
   currentForm.querySelector('input').focus();
 }
 
@@ -341,19 +387,28 @@ removePhoto.addEventListener('click', () => {
   photoInput.focus();
 });
 
-function finishAccount(event, message) {
-  event.preventDefault();
-  resetAccountForms();
-  event.currentTarget.hidden = true;
-  accountFooter.hidden = true;
-  accountDialog.querySelector('.dialog-description').hidden = true;
-  accountResult.hidden = false;
-  accountResult.querySelector('#account-status').textContent = message;
-  accountResult.querySelector('button').focus();
+function showConfirmation(form, panel) {
+  form.hidden = true;
+  panel.hidden = false;
+  panel.querySelector('h3').focus();
 }
 
-loginForm.addEventListener('submit', (event) => finishAccount(event, 'Prueba completada. No se inició una sesión.'));
-registerForm.addEventListener('submit', (event) => finishAccount(event, 'Prueba completada. No se creó una cuenta ni se guardaron los datos.'));
+function finishAccount(event, title, message) {
+  event.preventDefault();
+  resetAccountForms();
+  accountFooter.hidden = true;
+  accountDialog.querySelector('.dialog-description').hidden = true;
+  accountResult.querySelector('h3').textContent = title;
+  accountResult.querySelector('#account-status').textContent = message;
+  showConfirmation(event.currentTarget, accountResult);
+}
+
+loginForm.addEventListener('submit', (event) => {
+  finishAccount(event, 'Inicio de sesión simulado', 'La demo no abrió una sesión. Puedes seguir explorando sin una cuenta.');
+});
+registerForm.addEventListener('submit', (event) => {
+  finishAccount(event, 'Prueba de registro completada', 'La demo descartó los datos ingresados sin crear una cuenta.');
+});
 accountDialog.addEventListener('close', resetAccountForms);
 
 const lawyerDialog = document.querySelector('#lawyer-dialog');
@@ -382,6 +437,7 @@ const quoteMode = document.querySelector('#quote-mode');
 const quoteRecipientLabel = document.querySelector('#quote-recipient-label');
 const quoteRecipient = document.querySelector('#quote-recipient');
 const quoteResult = document.querySelector('#quote-result');
+const quoteResultMode = document.querySelector('#quote-result-mode');
 
 function openQuote(entry, fromLawyerProfile = false) {
   quoteForm.reset();
@@ -395,16 +451,15 @@ function openQuote(entry, fromLawyerProfile = false) {
   quoteForm.hidden = false;
   quoteResult.hidden = true;
   quoteDialog.showModal();
+  quoteDialog.scrollTop = 0;
   quoteForm.querySelector('input').focus();
 }
 
 quoteForm.addEventListener('submit', (event) => {
   event.preventDefault();
+  quoteResultMode.textContent = `Modalidad seleccionada: ${modeNames[quoteMode.value]}`;
   quoteForm.reset();
-  quoteForm.hidden = true;
-  quoteResult.hidden = false;
-  quoteResult.querySelector('#quote-status').textContent = 'Solicitud de demostración completada. No se envió ni se guardó la información.';
-  quoteResult.querySelector('button').focus();
+  showConfirmation(quoteForm, quoteResult);
 });
 
 quoteDialog.addEventListener('close', () => quoteForm.reset());
@@ -414,14 +469,18 @@ document.querySelectorAll('[data-close]').forEach((button) => {
 });
 
 const contactForm = document.querySelector('#contact-form');
-const contactStatus = document.querySelector('#contact-status');
+const contactResult = document.querySelector('#contact-result');
 
 contactForm.addEventListener('submit', (event) => {
   event.preventDefault();
   contactForm.reset();
-  contactStatus.textContent = 'Prueba completada. El mensaje no se envió.';
+  showConfirmation(contactForm, contactResult);
 });
 
-contactForm.addEventListener('input', () => { contactStatus.textContent = ''; });
+document.querySelector('#restart-contact').addEventListener('click', () => {
+  contactResult.hidden = true;
+  contactForm.hidden = false;
+  contactForm.querySelector('input').focus();
+});
 
 renderDirectory();
