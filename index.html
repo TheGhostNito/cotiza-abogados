@@ -16,6 +16,7 @@
     <symbol id="icon-arrow" viewBox="0 0 24 24"><path d="M4.5 12h14m-5.5-5.5 5.5 5.5-5.5 5.5"/></symbol>
     <symbol id="icon-up-right" viewBox="0 0 24 24"><path d="M6 18 18 6M7 6h11v11"/></symbol>
     <symbol id="icon-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></symbol>
+    <symbol id="icon-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
     <symbol id="icon-pin" viewBox="0 0 24 24"><path d="M19 10c0 5-7 10-7 10s-7-5-7-10a7 7 0 1 1 14 0Z"/><circle cx="12" cy="10" r="2.3"/></symbol>
     <symbol id="icon-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
     <symbol id="icon-family" viewBox="0 0 24 24"><path d="M12 20.5 4.6 13A4.7 4.7 0 1 1 12 7.3 4.7 4.7 0 1 1 19.4 13Z"/></symbol>
@@ -55,7 +56,7 @@
     </div>
   </header>
 
-  <main id="contenido">
+  <main id="contenido" tabindex="-1">
     <section class="container hero" aria-labelledby="hero-title">
       <div class="hero-intro">
         <h1 id="hero-title">Encuentra la ayuda<br class="hero-break"> <em>legal que necesitas.</em></h1>
@@ -93,7 +94,7 @@
     <section class="container directory" id="explorar" aria-labelledby="directory-title" tabindex="-1">
       <div class="section-head directory-head">
         <div>
-          <h2 id="directory-title">Explora por especialidad</h2>
+          <h2 id="directory-title" tabindex="-1">Explora por especialidad</h2>
           <p>Encuentra el área que mejor se ajusta a tu consulta.</p>
         </div>
         <div class="directory-switch" role="group" aria-label="Vista del directorio">
@@ -107,10 +108,21 @@
       </div>
       <p class="directory-note" id="directory-note" hidden>Los nombres, las fotografías y los datos de estos perfiles son ficticios.</p>
       <div class="directory-grid" id="directory-grid"></div>
+      <div class="empty-state" id="search-empty" hidden>
+        <span class="feedback-icon"><svg class="icon" aria-hidden="true"><use href="#icon-search"/></svg></span>
+        <div class="empty-content">
+          <h3 id="search-empty-title" tabindex="-1" aria-describedby="search-empty-help"></h3>
+          <p id="search-empty-help"></p>
+          <div class="empty-actions">
+            <button class="button" type="button" id="edit-search">Editar búsqueda</button>
+            <button class="text-button" type="button" id="recover-search"></button>
+          </div>
+        </div>
+      </div>
       <noscript><p>Activa JavaScript para explorar servicios y probar los formularios.</p></noscript>
     </section>
 
-    <section class="process" id="como-funciona" aria-labelledby="process-title">
+    <section class="process" id="como-funciona" aria-labelledby="process-title" tabindex="-1">
       <div class="container">
         <div class="section-head process-head">
           <h2 id="process-title">Cómo funciona</h2>
@@ -137,22 +149,31 @@
       </div>
     </section>
 
-    <section class="container contact" id="contacto" aria-labelledby="contact-title">
+    <section class="container contact" id="contacto" aria-labelledby="contact-title" tabindex="-1">
       <div class="section-head contact-intro">
         <span class="contact-icon"><svg class="icon" aria-hidden="true"><use href="#icon-mail"/></svg></span>
         <h2 id="contact-title">Conversemos.</h2>
-        <p>Si tienes dudas sobre Vía Legal o quieres compartir comentarios, escríbenos por este formulario.</p>
+        <p>Usa este formulario para preguntas o comentarios sobre Vía Legal. Si buscas asesoría legal, <a href="#explorar">explora el directorio</a>.</p>
       </div>
-      <form class="contact-form" id="contact-form" aria-describedby="contact-demo">
-        <div class="form-row">
-          <label>Nombre <input type="text" autocomplete="name" required maxlength="100"></label>
-          <label>Correo electrónico <input type="email" autocomplete="email" required maxlength="254"></label>
+      <div class="contact-card">
+        <form class="contact-form" id="contact-form" aria-describedby="contact-demo">
+          <div class="form-row">
+            <label>Nombre <input type="text" autocomplete="name" required maxlength="100"></label>
+            <label>Correo electrónico <input type="email" autocomplete="email" required maxlength="254"></label>
+          </div>
+          <label>Mensaje <textarea rows="4" required maxlength="1200"></textarea></label>
+          <p class="form-note" id="contact-demo">Usa datos ficticios. El mensaje de demostración no se enviará.</p>
+          <button class="button" type="submit">Enviar mensaje <svg class="icon" aria-hidden="true"><use href="#icon-arrow"/></svg></button>
+        </form>
+        <div class="confirmation" id="contact-result" hidden>
+          <span class="feedback-icon"><svg class="icon" aria-hidden="true"><use href="#icon-check"/></svg></span>
+          <div class="confirmation-content">
+            <h3 tabindex="-1" aria-describedby="contact-status">Prueba de contacto completada</h3>
+            <p id="contact-status">Tu mensaje de prueba no se envió ni se guardó.</p>
+          </div>
+          <button class="button" type="button" id="restart-contact">Escribir otro mensaje</button>
         </div>
-        <label>Mensaje <textarea rows="4" required maxlength="1200"></textarea></label>
-        <p class="form-note" id="contact-demo">Formulario de demostración. El mensaje no se enviará.</p>
-        <button class="button" type="submit">Enviar mensaje <svg class="icon" aria-hidden="true"><use href="#icon-arrow"/></svg></button>
-        <p class="inline-status" id="contact-status" role="status"></p>
-      </form>
+      </div>
     </section>
   </main>
 
@@ -201,8 +222,12 @@
         <span id="account-switch-prompt">¿Todavía no tienes una cuenta?</span>
         <button class="text-button" id="account-switch" type="button" data-account="register">Crear cuenta</button>
       </div>
-      <div class="dialog-result" id="account-result" hidden>
-        <p id="account-status" role="status"></p>
+      <div class="confirmation" id="account-result" hidden>
+        <span class="feedback-icon"><svg class="icon" aria-hidden="true"><use href="#icon-check"/></svg></span>
+        <div class="confirmation-content">
+          <h3 tabindex="-1" aria-describedby="account-status"></h3>
+          <p id="account-status"></p>
+        </div>
         <button class="button" type="button" data-close>Volver a la página</button>
       </div>
     </div>
@@ -256,8 +281,13 @@
         <p class="form-note" id="quote-demo">Usa un caso ficticio. Esta solicitud de demostración no se enviará.</p>
         <button class="button form-submit" type="submit">Enviar solicitud <svg class="icon" aria-hidden="true"><use href="#icon-arrow"/></svg></button>
       </form>
-      <div class="dialog-result" id="quote-result" hidden>
-        <p id="quote-status" role="status"></p>
+      <div class="confirmation" id="quote-result" hidden>
+        <span class="feedback-icon"><svg class="icon" aria-hidden="true"><use href="#icon-check"/></svg></span>
+        <div class="confirmation-content">
+          <h3 tabindex="-1" aria-describedby="quote-status quote-result-mode">Prueba de cotización completada</h3>
+          <p id="quote-status">La solicitud no se envió ni se guardó.</p>
+          <p class="confirmation-detail" id="quote-result-mode"></p>
+        </div>
         <button class="button" type="button" data-close>Volver a explorar</button>
       </div>
     </div>
